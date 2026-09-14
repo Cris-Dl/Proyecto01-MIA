@@ -1,4 +1,5 @@
 import flet as ft
+from Logica import GestorConfiguracion
 
 class Interfaz:
     def __init__(self, page: ft.Page):
@@ -7,6 +8,7 @@ class Interfaz:
         self.page.window_width = 900
         self.page.window_height = 600
         self.page.padding = 0
+        self.gestor = GestorConfiguracion()
         self.pantalla_inicial()
 
     def pantalla_inicial(self):
@@ -16,9 +18,11 @@ class Interfaz:
 
         def eleccion(e):
             if e.control.data == "defecto":
-                print("Lógica: Cargando configuración base...")
+                print("Usando valores por defecto...")
+                self.configuracion_activa = self.gestor.configuracion_defecto.copy()
             elif e.control.data == "archivo":
-                print("Lógica: Cargando archivo JSON del usuario...")
+                print("Intentando cargar archivo JSON...")
+                self.configuracion_activa = self.gestor.cargar_configuracion()
             self.pantalla_principal()
 
         startup_card = ft.Card(
