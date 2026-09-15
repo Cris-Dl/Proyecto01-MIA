@@ -5,6 +5,7 @@ from tkinter import filedialog, colorchooser
 import os
 from typing import Any
 
+
 class Interfaz:
     def __init__(self, page: ft.Page):
         self.page = page
@@ -14,6 +15,57 @@ class Interfaz:
         self.page.padding = 0
         self.gestor = GestorConfiguracion()
         self.configuracion_activa = {}
+        self.textos = {
+            "es/es-ES": {
+                "archivo": "Archivo",
+                "edicion": "Edición",
+                "ver": "Ver",
+                "opc_simulada": "Opción simulada",
+                "settings": "Settings",
+                "bienvenida": "Bienvenido al Sistema,",
+                "mensaje_inicio": "El programa ha iniciado correctamente con la configuración elegida.",
+                "lbl_nombre": "Nombre Usuario",
+                "lbl_color_menu": "Color de Menú",
+                "lbl_color_letra": "Color de Letra",
+                "chk_sincronizar": "Sincronizar colores (letras y menú) con el tema",
+                "lbl_tema": "Tema Interfaz",
+                "lbl_idioma": "Idioma",
+                "lbl_fuente": "Tamaño Fuente",
+                "lbl_foto": "Ruta Foto de Perfil",
+                "btn_buscar": "Buscar",
+                "btn_elegir": "🎨 Elegir",
+                "titulo_config": "Configuración de Usuario",
+                "btn_cancelar": "Cancelar",
+                "btn_guardar": "Guardar Configuración",
+                "msg_exito": "¡Configuración guardada y archivo JSON creado!",
+                "msg_error": "Error al guardar."
+            },
+            "en/en-US": {
+                "archivo": "File",
+                "edicion": "Edit",
+                "ver": "View",
+                "opc_simulada": "Simulated option",
+                "settings": "Settings",
+                "bienvenida": "Welcome to the System,",
+                "mensaje_inicio": "The program has started successfully with the chosen configuration.",
+                "lbl_nombre": "Username",
+                "lbl_color_menu": "Menu Color",
+                "lbl_color_letra": "Font Color",
+                "chk_sincronizar": "Sync colors (font & menu) with theme",
+                "lbl_tema": "Interface Theme",
+                "lbl_idioma": "Language",
+                "lbl_fuente": "Font Size",
+                "lbl_foto": "Profile Picture Path",
+                "btn_buscar": "Browse",
+                "btn_elegir": "🎨 Choose",
+                "titulo_config": "User Settings",
+                "btn_cancelar": "Cancel",
+                "btn_guardar": "Save Settings",
+                "msg_exito": "Configuration saved and JSON file created!",
+                "msg_error": "Error saving."
+            }
+        }
+
         self.pantalla_inicial()
 
     def mostrar_mensaje(self, texto, color):
@@ -42,7 +94,6 @@ class Interfaz:
             if not ruta:
                 return
             datos, estado = self.gestor.cargar_configuracion(ruta)
-
             if estado == "exito":
                 self.configuracion_activa = datos
                 self.mostrar_mensaje("¡Configuración cargada correctamente!", ft.Colors.GREEN_700)
@@ -120,6 +171,8 @@ class Interfaz:
         self.page.vertical_alignment = ft.MainAxisAlignment.START
         self.page.horizontal_alignment = ft.CrossAxisAlignment.START
         tema = self.configuracion_activa.get("tema_interfaz", "claro")
+        idioma = self.configuracion_activa.get("idioma", "es/es-ES")
+        t = self.textos.get(idioma, self.textos["es/es-ES"])
         if tema == "oscuro":
             self.page.theme_mode = ft.ThemeMode.DARK
         else:
@@ -136,20 +189,20 @@ class Interfaz:
         self.menubar = ft.Row(
             controls=[
                 ft.PopupMenuButton(
-                    content=ft.Text("Archivo", color=color_texto),
-                    items=[ft.PopupMenuItem(content=ft.Text("Opción simulada"))]
+                    content=ft.Text(t["archivo"], color=color_texto),
+                    items=[ft.PopupMenuItem(content=ft.Text(t["opc_simulada"]))]
                 ),
                 ft.PopupMenuButton(
-                    content=ft.Text("Edición", color=color_texto),
-                    items=[ft.PopupMenuItem(content=ft.Text("Opción simulada"))]
+                    content=ft.Text(t["edicion"], color=color_texto),
+                    items=[ft.PopupMenuItem(content=ft.Text(t["opc_simulada"]))]
                 ),
                 ft.PopupMenuButton(
-                    content=ft.Text("Ver", color=color_texto),
-                    items=[ft.PopupMenuItem(content=ft.Text("Opción simulada"))]
+                    content=ft.Text(t["ver"], color=color_texto),
+                    items=[ft.PopupMenuItem(content=ft.Text(t["opc_simulada"]))]
                 ),
                 ft.Container(width=10),
                 ft.TextButton(
-                    content=ft.Text("Settings", weight=ft.FontWeight.BOLD, color=color_texto),
+                    content=ft.Text(t["settings"], weight=ft.FontWeight.BOLD, color=color_texto),
                     on_click=self.abrir_configuracion
                 )
             ],
@@ -162,9 +215,7 @@ class Interfaz:
             content=self.menubar,
             shadow=ft.BoxShadow(blur_radius=3, color=ft.Colors.BLACK12)
         )
-
         controles_centro: list[Any] = [ft.Container(height=50)]
-
         if ruta_foto and os.path.exists(ruta_foto):
             controles_centro.append(
                 ft.Image(
@@ -179,13 +230,11 @@ class Interfaz:
             controles_centro.append(
                 ft.Text("👤", size=100)
             )
-
         controles_centro.extend([
             ft.Container(height=20),
-            ft.Text(f"Bienvenido al Sistema, {nombre_usuario}", size=tamanio_base, weight=ft.FontWeight.BOLD,
+            ft.Text(f"{t['bienvenida']} {nombre_usuario}", size=tamanio_base, weight=ft.FontWeight.BOLD,
                     color=color_texto),
-            ft.Text("El programa ha iniciado correctamente con la configuración elegida.", size=tamanio_base,
-                    color=color_texto)
+            ft.Text(t["mensaje_inicio"], size=tamanio_base, color=color_texto)
         ])
 
         self.main_content = ft.Column(
@@ -200,16 +249,15 @@ class Interfaz:
         self.page.update()
 
     def abrir_configuracion(self, e):
-        txt_nombre = ft.TextField(label="Nombre Usuario", value=self.configuracion_activa.get("nombre_usuario", ""))
-
+        idioma_actual = self.configuracion_activa.get("idioma", "es/es-ES")
+        t = self.textos.get(idioma_actual, self.textos["es/es-ES"])
+        txt_nombre = ft.TextField(label=t["lbl_nombre"], value=self.configuracion_activa.get("nombre_usuario", ""))
         color_menu_actual = self.configuracion_activa.get("color_menu", "#EEEEEE")
         color_letra_actual = self.configuracion_activa.get("color_letra", "#000000")
-
-        txt_color_menu = ft.TextField(label="Color de Menú", value=color_menu_actual, expand=True)
-        txt_color_letra = ft.TextField(label="Color de Letra", value=color_letra_actual, expand=True)
-
+        txt_color_menu = ft.TextField(label=t["lbl_color_menu"], value=color_menu_actual, expand=True)
+        txt_color_letra = ft.TextField(label=t["lbl_color_letra"], value=color_letra_actual, expand=True)
         chk_sincronizar = ft.Checkbox(
-            label="Sincronizar colores (letras y menú) con el tema",
+            label=t["chk_sincronizar"],
             value=self.configuracion_activa.get("sincronizar_color", True)
         )
 
@@ -235,7 +283,7 @@ class Interfaz:
             self.page.update()
 
         dd_tema = ft.Dropdown(
-            label="Tema Interfaz",
+            label=t["lbl_tema"],
             options=[ft.dropdown.Option("claro"), ft.dropdown.Option("oscuro")],
             value=self.configuracion_activa.get("tema_interfaz", "claro"),
             on_select=al_cambiar_tema
@@ -245,16 +293,14 @@ class Interfaz:
             root = tk.Tk()
             root.withdraw()
             root.attributes('-topmost', True)
-            resultado = colorchooser.askcolor(title="Selecciona Color del Menú", initialcolor=txt_color_menu.value)
+            resultado = colorchooser.askcolor(title=t["lbl_color_menu"], initialcolor=txt_color_menu.value)
             root.destroy()
             if resultado and resultado[1]:
                 color_hex = str(resultado[1])
                 txt_color_menu.value = color_hex
                 txt_color_menu.update()
-
                 chk_sincronizar.value = False
                 chk_sincronizar.update()
-
                 ev.control.bgcolor = color_hex
                 ev.control.update()
 
@@ -262,7 +308,7 @@ class Interfaz:
             root = tk.Tk()
             root.withdraw()
             root.attributes('-topmost', True)
-            resultado = colorchooser.askcolor(title="Selecciona Color de Letra", initialcolor=txt_color_letra.value)
+            resultado = colorchooser.askcolor(title=t["lbl_color_letra"], initialcolor=txt_color_letra.value)
             root.destroy()
             if resultado and resultado[1]:
                 color_hex = str(resultado[1])
@@ -276,7 +322,7 @@ class Interfaz:
                 ev.control.update()
 
         btn_color_menu = ft.Container(
-            content=ft.Text("🎨 Elegir", weight=ft.FontWeight.BOLD),
+            content=ft.Text(t["btn_elegir"], weight=ft.FontWeight.BOLD),
             bgcolor=color_menu_actual,
             padding=10,
             border_radius=5,
@@ -285,7 +331,7 @@ class Interfaz:
         )
 
         btn_color_letra = ft.Container(
-            content=ft.Text("🎨 Elegir", weight=ft.FontWeight.BOLD),
+            content=ft.Text(t["btn_elegir"], weight=ft.FontWeight.BOLD),
             bgcolor=color_letra_actual,
             padding=10,
             border_radius=5,
@@ -294,14 +340,14 @@ class Interfaz:
         )
 
         dd_idioma = ft.Dropdown(
-            label="Idioma",
+            label=t["lbl_idioma"],
             options=[ft.dropdown.Option("es/es-ES"), ft.dropdown.Option("en/en-US")],
-            value=self.configuracion_activa.get("idioma", "es/es-ES")
+            value=idioma_actual
         )
 
-        txt_fuente = ft.TextField(label="Tamaño Fuente",
+        txt_fuente = ft.TextField(label=t["lbl_fuente"],
                                   value=str(self.configuracion_activa.get("tamanio_fuente", "16")))
-        txt_ruta_foto = ft.TextField(label="Ruta Foto de Perfil", read_only=True, expand=True,
+        txt_ruta_foto = ft.TextField(label=t["lbl_foto"], read_only=True, expand=True,
                                      value=self.configuracion_activa.get("foto_perfil", ""))
 
         def seleccionar_foto_local(ev):
@@ -314,11 +360,11 @@ class Interfaz:
                 txt_ruta_foto.value = ruta
                 txt_ruta_foto.update()
 
-        boton_buscar = ft.FilledButton("Buscar", on_click=seleccionar_foto_local)
+        boton_buscar = ft.FilledButton(t["btn_buscar"], on_click=seleccionar_foto_local)
 
         dialogo = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Configuración de Usuario"),
+            title=ft.Text(t["titulo_config"]),
             content=ft.Column(
                 controls=[
                     txt_nombre,
@@ -350,10 +396,11 @@ class Interfaz:
                 self.configuracion_activa = nuevos_datos
                 dialogo.open = False
                 self.page.update()
-                self.mostrar_mensaje("¡Configuración guardada y archivo JSON creado!", ft.Colors.GREEN_700)
+                t_nuevo = self.textos.get(dd_idioma.value, self.textos["es/es-ES"])
+                self.mostrar_mensaje(t_nuevo["msg_exito"], ft.Colors.GREEN_700)
                 self.pantalla_principal()
             else:
-                self.mostrar_mensaje("Error al guardar.", ft.Colors.RED_700)
+                self.mostrar_mensaje(t["msg_error"], ft.Colors.RED_700)
 
         def cancelar_click(ev):
             tema_original = self.configuracion_activa.get("tema_interfaz", "claro")
@@ -362,8 +409,8 @@ class Interfaz:
             self.page.update()
 
         dialogo.actions = [
-            ft.TextButton("Cancelar", on_click=cancelar_click),
-            ft.FilledButton("Guardar Configuración", on_click=guardar_click)
+            ft.TextButton(t["btn_cancelar"], on_click=cancelar_click),
+            ft.FilledButton(t["btn_guardar"], on_click=guardar_click)
         ]
         dialogo.actions_alignment = ft.MainAxisAlignment.END
 
@@ -371,10 +418,8 @@ class Interfaz:
         dialogo.open = True
         self.page.update()
 
-
 def main(page: ft.Page):
     app = Interfaz(page)
-
 
 if __name__ == "__main__":
     ft.run(main)
