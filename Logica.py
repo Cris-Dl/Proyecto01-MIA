@@ -22,14 +22,21 @@ class GestorConfiguracion:
             self.nombre_archivo = ruta_archivo
         try:
             with open(self.nombre_archivo, "r", encoding="utf-8") as archivo:
-                self.configuracion_actual = json.load(archivo)
+                datos = json.load(archivo)
+            if not isinstance(datos, dict):
+                raise ValueError("El JSON no tiene formato de diccionario.")
+
+            for clave in self.configuracion_defecto.keys():
+                if clave not in datos:
+                    raise ValueError(f"Falta la clave de configuración: {clave}")
+            self.configuracion_actual = datos
             return self.configuracion_actual, "exito"
 
         except FileNotFoundError:
             self.configuracion_actual = self.configuracion_defecto.copy()
             return self.configuracion_actual, "no_encontrado"
 
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, ValueError):
             self.configuracion_actual = self.configuracion_defecto.copy()
             return self.configuracion_actual, "invalido"
 
