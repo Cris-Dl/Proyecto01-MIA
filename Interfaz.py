@@ -13,14 +13,18 @@ class Interfaz:
         self.page.window_width = 900
         self.page.window_height = 600
         self.page.padding = 0
+
         self.gestor = GestorConfiguracion()
         self.configuracion_activa = {}
+
         self.textos = {
             "es/es-ES": {
                 "archivo": "Archivo",
                 "edicion": "Edición",
                 "ver": "Ver",
                 "opc_simulada": "Opción simulada",
+                "menu_descargar_bak": "Descargar configuración anterior (.bak)",
+                "menu_info_guardado": "Estado de configuración actual",
                 "settings": "Settings",
                 "bienvenida": "Bienvenido al Sistema,",
                 "mensaje_inicio": "El programa ha iniciado correctamente con la configuración elegida.",
@@ -37,7 +41,7 @@ class Interfaz:
                 "titulo_config": "Configuración de Usuario",
                 "btn_cancelar": "Cancelar",
                 "btn_guardar": "Guardar Configuración",
-                "msg_exito": "¡Configuración guardada y archivo JSON creado!",
+                "msg_exito": "¡Configuración guardada y archivo JSON actualizado!",
                 "msg_error": "Error al guardar."
             },
             "en/en-US": {
@@ -45,6 +49,8 @@ class Interfaz:
                 "edicion": "Edit",
                 "ver": "View",
                 "opc_simulada": "Simulated option",
+                "menu_descargar_bak": "Download previous config (.bak)",
+                "menu_info_guardado": "Current configuration status",
                 "settings": "Settings",
                 "bienvenida": "Welcome to the System,",
                 "mensaje_inicio": "The program has started successfully with the chosen configuration.",
@@ -61,7 +67,7 @@ class Interfaz:
                 "titulo_config": "User Settings",
                 "btn_cancelar": "Cancel",
                 "btn_guardar": "Save Settings",
-                "msg_exito": "Configuration saved and JSON file created!",
+                "msg_exito": "Configuration saved and JSON file updated!",
                 "msg_error": "Error saving."
             }
         }
@@ -90,6 +96,19 @@ class Interfaz:
             root.destroy()
             return ruta
 
+        def guardar_nuevo_selector():
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes('-topmost', True)
+            ruta = filedialog.asksaveasfilename(
+                title="Guardar nueva configuración como...",
+                defaultextension=".json",
+                filetypes=[("Archivos JSON", "*.json")],
+                initialfile="config.json"
+            )
+            root.destroy()
+            return ruta
+
         def procesar_archivo(ruta):
             if not ruta:
                 return
@@ -105,9 +124,13 @@ class Interfaz:
 
                 def accion_base(e):
                     dlg_error.open = False
-                    self.configuracion_activa = self.gestor.configuracion_defecto.copy()
                     self.page.update()
-                    self.mostrar_mensaje("Iniciando con configuración base.", ft.Colors.BLUE_700)
+                    ruta_nueva = guardar_nuevo_selector()
+                    if ruta_nueva:
+                        self.gestor.nombre_archivo = ruta_nueva
+                    self.configuracion_activa = self.gestor.configuracion_defecto.copy()
+                    self.gestor.guardar_configuracion(self.configuracion_activa)
+                    self.mostrar_mensaje("¡Archivo base creado e iniciado con éxito!", ft.Colors.BLUE_700)
                     self.pantalla_principal()
 
                 def accion_otro(e):
@@ -119,11 +142,10 @@ class Interfaz:
                 dlg_error = ft.AlertDialog(
                     modal=True,
                     title=ft.Text("Archivo Corrupto o Inválido"),
-                    content=ft.Text(
-                        "El archivo seleccionado está corrupto o no tiene un formato válido de configuración para este programa.\n\n¿Qué deseas hacer?"),
+                    content=ft.Text("El archivo seleccionado está corrupto o no tiene un formato válido de configuración para este programa.\n\n¿Qué deseas hacer?"),
                     actions=[
                         ft.TextButton("Cancelar", on_click=accion_cancelar),
-                        ft.OutlinedButton("Cargar Base", on_click=accion_base),
+                        ft.OutlinedButton("Crear Base", on_click=accion_base),
                         ft.FilledButton("Cargar Otro", on_click=accion_otro)
                     ],
                     actions_alignment=ft.MainAxisAlignment.END
@@ -134,14 +156,16 @@ class Interfaz:
 
         def eleccion(e):
             if e.control.data == "defecto":
+                ruta_nueva = guardar_nuevo_selector()
+                if ruta_nueva:
+                    self.gestor.nombre_archivo = ruta_nueva
                 self.configuracion_activa = self.gestor.configuracion_defecto.copy()
-                self.mostrar_mensaje("Iniciando con configuración base.", ft.Colors.BLUE_700)
+                self.gestor.guardar_configuracion(self.configuracion_activa)
+                self.mostrar_mensaje("¡Archivo base creado e iniciado con éxito!", ft.Colors.BLUE_700)
                 self.pantalla_principal()
-
             elif e.control.data == "archivo":
                 ruta_seleccionada = abrir_selector()
                 procesar_archivo(ruta_seleccionada)
-
         startup_card = ft.Card(
             elevation=10,
             content=ft.Container(
@@ -153,7 +177,7 @@ class Interfaz:
                         ft.Container(height=10),
                         ft.Row(
                             controls=[
-                                ft.TextButton("Usar Base por Defecto", data="defecto", on_click=eleccion),
+                                ft.TextButton("Crear Nueva Base", data="defecto", on_click=eleccion),
                                 ft.FilledButton("Cargar Archivo", data="archivo", on_click=eleccion),
                             ],
                             alignment=ft.MainAxisAlignment.END
@@ -186,11 +210,74 @@ class Interfaz:
         except ValueError:
             tamanio_base = 16
 
+        def cerrar_dialogo(dlg):
+            dlg.open = False
+            self.page.update()
+
+        def descargar_bak(e):
+            if self.gestor.tiene_respaldo():
+                root = tk.Tk()
+                root.withdraw()
+                root.attributes('-topmost', True)
+                ruta = filedialog.asksaveasfilename(
+                    title="Guardar respaldo anterior (.bak)",
+                    defaultextension=".json",
+                    filetypes=[("Archivos JSON", "*.json")],
+                    initialfile="respaldo_anterior.json"
+                )
+                root.destroy()
+                if ruta:
+                    if self.gestor.exportar_respaldo(ruta):
+                        self.mostrar_mensaje("¡Respaldo anterior descargado correctamente!", ft.Colors.GREEN_700)
+                    else:
+                        self.mostrar_mensaje("Hubo un error al exportar el respaldo.", ft.Colors.RED_700)
+            else:
+                self.mostrar_mensaje("Aún no existe una configuración anterior para respaldar.", ft.Colors.RED_700)
+
+        def info_guardado(e):
+            def confirmar_descarga_actual(ex):
+                dlg_info.open = False
+                self.page.update()
+                root = tk.Tk()
+                root.withdraw()
+                root.attributes('-topmost', True)
+                ruta = filedialog.asksaveasfilename(
+                    title="Descargar copia de la configuración actual",
+                    defaultextension=".json",
+                    filetypes=[("Archivos JSON", "*.json")],
+                    initialfile="copia_configuracion.json"
+                )
+                root.destroy()
+                if ruta:
+                    if self.gestor.exportar_configuracion_actual(ruta):
+                        self.mostrar_mensaje("¡Copia de configuración actual descargada!", ft.Colors.GREEN_700)
+                    else:
+                        self.mostrar_mensaje("Hubo un error al descargar la copia.", ft.Colors.RED_700)
+
+            texto_info = f"Todos los cambios se han guardado de forma segura en el archivo original:\n{self.gestor.nombre_archivo}\n\n(Se utilizó un archivo temporal de escritura para evitar corrupción de datos).\n\n¿Deseas descargar una copia extra de esta configuración?"
+            if idioma == "en/en-US":
+                texto_info = f"All changes have been securely saved to the original file:\n{self.gestor.nombre_archivo}\n\n(A temporary write file was used to prevent data corruption).\n\nWould you like to download an extra copy of this configuration?"
+
+            dlg_info = ft.AlertDialog(
+                title=ft.Text(t["menu_info_guardado"]),
+                content=ft.Text(texto_info),
+                actions=[
+                    ft.TextButton(t["btn_cancelar"], on_click=lambda ex: cerrar_dialogo(dlg_info)),
+                    ft.FilledButton(t["menu_descargar_bak"].split(' ')[0], on_click=confirmar_descarga_actual)
+                ]
+            )
+            self.page.overlay.append(dlg_info)
+            dlg_info.open = True
+            self.page.update()
+
         self.menubar = ft.Row(
             controls=[
                 ft.PopupMenuButton(
                     content=ft.Text(t["archivo"], color=color_texto),
-                    items=[ft.PopupMenuItem(content=ft.Text(t["opc_simulada"]))]
+                    items=[
+                        ft.PopupMenuItem(content=ft.Text(t["menu_descargar_bak"]), on_click=descargar_bak),
+                        ft.PopupMenuItem(content=ft.Text(t["menu_info_guardado"]), on_click=info_guardado)
+                    ]
                 ),
                 ft.PopupMenuButton(
                     content=ft.Text(t["edicion"], color=color_texto),
@@ -258,7 +345,7 @@ class Interfaz:
         txt_color_letra = ft.TextField(label=t["lbl_color_letra"], value=color_letra_actual, expand=True)
         chk_sincronizar = ft.Checkbox(
             label=t["chk_sincronizar"],
-            value=self.configuracion_activa.get("sincronizar_color", True)
+            value=True
         )
 
         def al_cambiar_tema(ev):
@@ -275,7 +362,6 @@ class Interfaz:
 
             txt_color_letra.update()
             txt_color_menu.update()
-
             btn_color_menu.bgcolor = txt_color_menu.value
             btn_color_letra.bgcolor = txt_color_letra.value
             btn_color_menu.update()
@@ -314,10 +400,8 @@ class Interfaz:
                 color_hex = str(resultado[1])
                 txt_color_letra.value = color_hex
                 txt_color_letra.update()
-
                 chk_sincronizar.value = False
                 chk_sincronizar.update()
-
                 ev.control.bgcolor = color_hex
                 ev.control.update()
 
@@ -388,8 +472,7 @@ class Interfaz:
                 "tamanio_fuente": txt_fuente.value,
                 "color_menu": txt_color_menu.value,
                 "color_letra": txt_color_letra.value,
-                "foto_perfil": txt_ruta_foto.value,
-                "sincronizar_color": chk_sincronizar.value
+                "foto_perfil": txt_ruta_foto.value
             }
 
             if self.gestor.guardar_configuracion(nuevos_datos):

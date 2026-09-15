@@ -10,7 +10,7 @@ class GestorConfiguracion:
             "nombre_usuario": "Estudiante",
             "tema_interfaz": "claro",
             "idioma": "es/es-ES",
-            "tamanio_fuente": "12",
+            "tamanio_fuente": "16",
             "color_menu": "#EEEEEE",
             "color_letra": "#000000",
             "foto_perfil": ""
@@ -31,7 +31,6 @@ class GestorConfiguracion:
                     raise ValueError(f"Falta la clave de configuración: {clave}")
             self.configuracion_actual = datos
             return self.configuracion_actual, "exito"
-
         except FileNotFoundError:
             self.configuracion_actual = self.configuracion_defecto.copy()
             return self.configuracion_actual, "no_encontrado"
@@ -56,4 +55,32 @@ class GestorConfiguracion:
         except Exception as e:
             if os.path.exists(self.archivo_temporal):
                 os.remove(self.archivo_temporal)
+            return False
+
+    def tiene_respaldo(self):
+        return os.path.exists(self.archivo_respaldo)
+
+    def exportar_respaldo(self, ruta_destino):
+        try:
+            if self.tiene_respaldo():
+                with open(self.archivo_respaldo, "r", encoding="utf-8") as original:
+                    contenido = original.read()
+                with open(ruta_destino, "w", encoding="utf-8") as destino:
+                    destino.write(contenido)
+                return True
+            return False
+        except Exception:
+            return False
+
+    def exportar_configuracion_actual(self, ruta_destino):
+        try:
+            if os.path.exists(self.nombre_archivo):
+                with open(self.nombre_archivo, "r", encoding="utf-8") as original:
+                    contenido = original.read()
+
+                with open(ruta_destino, "w", encoding="utf-8") as destino:
+                    destino.write(contenido)
+                return True
+            return False
+        except Exception:
             return False
